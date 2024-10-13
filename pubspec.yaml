@@ -31,6 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
   smooth_page_indicator: ^1.2.0+3  # Thêm dòng này
+  font_awesome_flutter: ^10.2.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -64,7 +65,12 @@ flutter:
     - assets/homeimages/1.jpg
     - assets/homeimages/2.jpg
     - assets/homeimages/3.jpg
-
+    - assets/tuyen_duong_pho_bien/
+    - assets/thue_xe/
+    - assets/Dat_xe/
+    - assets/sale/
+    - assets/Doi_tac/
+    - assets/icons/
     - assets/z5904908073308_0c9be4c00932f75cb11653afd8f45cb2.jpg
   #   - images/a_dot_ham.jpeg
 
@@ -79,17 +85,17 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Schyler
+  fonts:
+  #   - family: DancingScript
   #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/DancingScript.ttf
   #       - asset: fonts/Schyler-Italic.ttf
   #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
+     - family: DancingScript
+       fonts:
+         - asset: assets/fonts/DancingScript.ttf
+  #       
+           weight: 700
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

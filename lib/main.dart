@@ -1,35 +1,20 @@
-/*import 'package:flutter/material.dart';
-
-void main() {
-  runApp(
-    MaterialApp(
-      home: Scaffold(
-        
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.orange,
-                Color.fromARGB(255, 158, 109, 36),
-              ],
-            ),
-          ),
-          child: const Center(
-            child: Text('Hello World!'),
-          ),
-        ),
-      ),
-    ),
-  );
-}*/
+import 'package:app_pbl6/Screen/app_bar_widget.dart';
+import 'package:app_pbl6/Screen/booking_widget.dart';
+import 'package:app_pbl6/Screen/car_rental_widget.dart';
+import 'package:app_pbl6/Screen/describe_app.dart';
+import 'package:app_pbl6/Screen/highlight_numbers_widget.dart';
+import 'package:app_pbl6/Screen/partners_widget.dart';
+import 'package:app_pbl6/Screen/popular_routes_widget.dart';
+import 'package:app_pbl6/Screen/reason_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:app_pbl6/Screen/sale_widget.dart';
+import 'package:app_pbl6/Screen/customer_reviews_widget.dart';
 
 void main() {
-  runApp(SafelyTravelApp());
+  runApp(SafetyTravelApp());
 }
 
-class SafelyTravelApp extends StatelessWidget {
+class SafetyTravelApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -45,146 +30,143 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-  // Danh sách các hình nền
-  final List<String> images = [
-    'assets/homeimages/1.jpg',
-    'assets/homeimages/2.jpg',
-    'assets/homeimages/3.jpg',
-  ];
+  
+  
+  
+  
+  
+  // Biến để kiểm tra mã giảm giá
 
   final PageController _pageController = PageController();
+  final PageController _pageControllerRoutes = PageController();
+  final PageController _pageControllerCarRental = PageController();
+  final PageController _pageControllerBooking = PageController();
+  
+  int _currentIndex = 0; // Biến lưu trạng thái tab hiện tại
 
   @override
   void initState() {
     super.initState();
     _pageController.addListener(() {
-      setState(() {
-      });
+      setState(() {});
+    });
+  }
+
+  // Hàm chuyển đổi giữa các trang của BottomNavigationBar
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, // Căn trái cho tiêu đề
-          children: [
-            Text(
-              'Safely Travel',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                foreground: Paint()
-                  ..shader = const LinearGradient(
-                    colors: <Color>[
-                      Colors.orange, // Màu đầu tiên
-                      Color.fromARGB(255, 65, 40, 3), // Màu thứ hai
-                    ],
-                    tileMode: TileMode.clamp,
-                  ).createShader(const Rect.fromLTWH(0, 0, 200, 70)),
-              ),
-            ),
-            const SizedBox(height: 4), // Khoảng cách giữa hai dòng
-            Text(
-              'Mỗi chuyến xe là mỗi...',
-              style: TextStyle(
-                fontSize: 16, // Kích thước chữ nhỏ hơn
-                foreground: Paint()
-                  ..shader = const LinearGradient(
-                    colors: <Color>[
-                      Colors.orange, // Màu đầu tiên
-                      Color.fromARGB(255, 65, 40, 3), // Màu thứ hai
-                    ],
-                    tileMode: TileMode.clamp,
-                  ).createShader(const Rect.fromLTWH(0, 0, 200, 70)),
-              ),
-            ),
-          ],
-        ),
-        centerTitle: false, // Đặt trung tâm tiêu đề thành false
-        titleSpacing: 16.0, // Thêm khoảng cách cho tiêu đề
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.message, color: Colors.orange),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications, color: Colors.orange),
-            onPressed: () {},
-          ),
-          const CircleAvatar(
-            backgroundImage: AssetImage('assets/z5904908073308_0c9be4c00932f75cb11653afd8f45cb2.jpg'),
-            radius: 20,
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Sử dụng PageView để hiển thị nhiều hình ảnh nền
-          PageView.builder(
-            controller: _pageController,
-            itemCount: images.length,
-            itemBuilder: (context, index) {
-              return Image.asset(
-                images[index],
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover, // Đảm bảo hình ảnh bao phủ toàn bộ
-              );
-            },
-          ),
-          
-          // Thêm SmoothPageIndicator
-          Positioned(
-            bottom: 40, // Điều chỉnh vị trí của indicator
-            left: 0,
-            right: 0,
-            child: Center(
-              child: SmoothPageIndicator(
-                controller: _pageController,
-                count: images.length,
-                effect: const WormEffect(
-                  dotColor: Colors.grey,
-                  activeDotColor: Colors.orange,
-                  dotHeight: 8,
-                  dotWidth: 8,
-                  spacing: 4,
-                ),
-              ),
-            ),
-          ),
+    // Mảng lưu các màn hình khi nhấn vào từng nút
+    final List<Widget> screens = [
+      buildHomePage(),
+      const Center(child: Text('Mua vé')),
+      const Center(child: Text('Thuê xe')),
+      const Center(child: Text('Đặt xe')),
+      const Center(child: Text('Làm đối tác')),
+    ];
 
-          // Văn bản hiển thị trên hình ảnh trong hộp màu xám nhạt
-          Positioned(
-            bottom: 100, // Điều chỉnh vị trí của văn bản
-            left: 20,
-            right: 20,
-            child: Container(
-              padding: const EdgeInsets.all(16.0), // Thêm padding cho văn bản
-              decoration: BoxDecoration(
-                color: Colors.grey[300], // Màu nền xám nhạt
-                borderRadius: BorderRadius.circular(10), // Bo góc
-              ),
-              child: const Text(
-                'Chào mừng bạn đến với Safely Travel, nơi bắt đầu mọi hành trình!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color.fromARGB(255, 135, 95, 34), // Màu chữ để dễ nhìn trên nền
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-  
-                  
-                ),
-              ),
-            ),
+    return Scaffold(
+      appBar: const AppBarWidget(),
+
+      body: screens[_currentIndex], // Hiển thị nội dung theo tab hiện tại
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex, // Chỉ mục của tab hiện tại
+        onTap: _onTabTapped, // Hàm thay đổi tab
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.orange, // Màu sắc khi tab được chọn
+        unselectedItemColor: Colors.grey, // Màu sắc khi tab không được chọn
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Trang chủ',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.confirmation_number),
+            label: 'Mua vé',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.car_rental),
+            label: 'Thuê xe',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.directions_car),
+            label: 'Đặt xe',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.handshake),
+            label: 'Làm đối tác',
           ),
         ],
       ),
     );
   }
+
+  // Hàm xây dựng trang chủ
+  Widget buildHomePage() {
+    return Scrollbar(
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            buildDescribeApp(_pageController, images),
+            const SizedBox(height: 20),
+            // Phần Con số nổi bật
+            HighlightNumbersWidget(),
+            const SizedBox(height: 20),
+            // Phần Các tuyến đường phổ biến
+            PopularRoutesWidget(
+              popularRoutes: popularRoutes,
+              pageControllerRoutes: _pageControllerRoutes,
+            ),
+            const SizedBox(height: 20),
+            //Phần Thuê xe tự lái hoặc có tài xế
+            CarRentalWidget(
+              carRentalOptions: carRentalOptions,
+              pageControllerCarRental: _pageControllerCarRental,
+              onTap: () {
+                setState(() {
+                  _currentIndex = 2;
+                });
+              },
+            ),
+            const SizedBox(height: 20),
+            // Phần mục đặt xe
+            BookingWidget(
+              bookingOptions: bookingOptions,
+              pageControllerBooking: _pageControllerBooking,
+              onBookingTap: () {
+                setState(() {
+                  _currentIndex = 3; // Chuyển đến tab "Đặt xe" (chỉ mục 3)
+                });
+              },
+            ),
+            const SizedBox(height: 20),
+            // ĐỐI TÁC CỦA SAFELY TRAVEL
+            PartnersWidget(
+              partners: partners,
+              onPartnerTap: () {
+                setState(() {
+                  _currentIndex = 4; // Chuyển đến tab "Làm đối tác" (chỉ mục 4)
+                });
+              },
+            ),
+            const SizedBox(height: 20),
+            // Phần Khuyến mãi
+            SaleWidget(),
+            const SizedBox(height: 50),
+            // Phần đánh giá
+            const CustomerReviewsWidget(),
+            const SizedBox(height: 50),
+            // Phần Tại sao nên lựa chọn Safety Travel
+            const ReasonWidget(),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
 }
-
-
