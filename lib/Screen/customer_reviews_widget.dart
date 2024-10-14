@@ -17,13 +17,14 @@ class CustomerReviewsWidget extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color.fromARGB(255, 214, 72, 32),
+                color: Color.fromARGB(255, 214, 72, 31),
               ),
             ),
           ),
           const SizedBox(height: 20),
           // Kiểm tra xem có đánh giá không
-          const Center( // Căn giữa thông báo "Chưa có đánh giá"
+          const Center(
+            // Căn giữa thông báo "Chưa có đánh giá"
             child: Text(
               'Chưa có đánh giá', // Hiển thị thông báo khi chưa có đánh giá
               style: TextStyle(
