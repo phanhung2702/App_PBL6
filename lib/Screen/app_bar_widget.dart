@@ -1,6 +1,12 @@
+import 'package:app_pbl6/Profile/account_management.dart';
+import 'package:app_pbl6/Profile/order_management_page.dart';
+import 'package:app_pbl6/Profile/setting_page.dart';
 import 'package:flutter/material.dart';
+import 'package:app_pbl6/welcome_page.dart';
+
 
 class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
+  
   const AppBarWidget({super.key});
 
   @override
@@ -49,17 +55,23 @@ class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 16.0,
       actions: [
         IconButton(
-          icon: const Icon(Icons.message, color: Color.fromARGB(255, 214, 72, 32),),
+          icon: const Icon(
+            Icons.message,
+            color: Color.fromARGB(255, 214, 72, 32),
+          ),
           onPressed: () {},
         ),
         IconButton(
-          icon: const Icon(Icons.notifications, color: Color.fromARGB(255, 214, 72, 32),),
+          icon: const Icon(
+            Icons.notifications,
+            color: Color.fromARGB(255, 214, 72, 32),
+          ),
           onPressed: () {},
         ),
-         // Avatar hiển thị tượng trưng khi chưa đăng nhập
-        Container(
-          margin: const EdgeInsets.only(right: 16), // Khoảng cách bên phải
-          child: const CircleAvatar(
+        
+        // Thay thế Container bằng PopupMenuButton
+        PopupMenuButton<String>(
+          icon: const CircleAvatar(
             radius: 20,
             backgroundColor: Colors.grey, // Màu nền là xám
             child: Icon(
@@ -68,8 +80,65 @@ class AppBarWidget extends StatelessWidget implements PreferredSizeWidget {
               size: 20, // Kích thước biểu tượng
             ),
           ),
+          onSelected: (value) {
+            switch (value) {
+              case 'settings':
+                // Điều hướng đến trang cài đặt chế độ
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SettingsPage()),
+                );
+                break;
+              case 'account_management':
+                // Điều hướng đến trang quản lý tài khoản
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AccountManagementPage()),
+                );
+                break;
+              case 'order_management':
+                // Điều hướng đến trang quản lý đơn hàng
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => OrderManagementPage()),
+                );
+                break;
+              case 'logout':
+                _logout(context);
+                break;
+            }
+          },
+          itemBuilder: (BuildContext context) {
+            return [
+              const PopupMenuItem<String>(
+                value: 'settings',
+                child: Text('Cài đặt chế độ'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'account_management',
+                child: Text('Quản lý tài khoản'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'order_management',
+                child: Text('Quản lý đơn hàng'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Text('Đăng xuất'),
+              ),
+            ];
+          },
         ),
       ],
+    );
+  }
+
+  void _logout(BuildContext context) async {
+    // Quay lại màn hình đăng nhập
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => WelcomePage()), // Thay LoginPage bằng trang đăng nhập của bạn
+      (Route<dynamic> route) => false, // Loại bỏ tất cả các route khác
     );
   }
 

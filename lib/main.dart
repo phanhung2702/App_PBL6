@@ -1,3 +1,4 @@
+import 'package:app_pbl6/welcome_page.dart';
 import 'package:app_pbl6/Screen/app_bar_widget.dart';
 import 'package:app_pbl6/Screen/booking_widget.dart';
 import 'package:app_pbl6/Screen/car_rental_widget.dart';
@@ -10,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:app_pbl6/Screen/sale_widget.dart';
 import 'package:app_pbl6/Screen/customer_reviews_widget.dart';
 
+
 void main() {
   runApp(SafetyTravelApp());
 }
@@ -18,8 +20,11 @@ class SafetyTravelApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      title: 'Safety Travel',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: WelcomePage(), // Chuyển đến WelcomePage khi khởi động
     );
   }
 }
@@ -30,23 +35,17 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-  
-  
-  
-  
-  
-  // Biến để kiểm tra mã giảm giá
-
   final PageController _pageController = PageController();
   final PageController _pageControllerRoutes = PageController();
   final PageController _pageControllerCarRental = PageController();
   final PageController _pageControllerBooking = PageController();
-  
-  int _currentIndex = 0; // Biến lưu trạng thái tab hiện tại
 
+  int _currentIndex = 0;
+  
   @override
   void initState() {
     super.initState();
+    
     _pageController.addListener(() {
       setState(() {});
     });
@@ -58,7 +57,7 @@ class HomePageState extends State<HomePage> {
       _currentIndex = index;
     });
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     // Mảng lưu các màn hình khi nhấn vào từng nút
