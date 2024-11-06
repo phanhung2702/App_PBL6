@@ -1,3 +1,4 @@
+import 'package:app_pbl6/Tabs/RentVehicle/rent_vehicle.dart';
 import 'package:app_pbl6/welcome_page.dart';
 import 'package:app_pbl6/Screen/app_bar_widget.dart';
 import 'package:app_pbl6/Screen/booking_widget.dart';
@@ -10,7 +11,7 @@ import 'package:app_pbl6/Screen/reason_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:app_pbl6/Screen/sale_widget.dart';
 import 'package:app_pbl6/Screen/customer_reviews_widget.dart';
-
+import 'package:app_pbl6/Tabs/buy_ticket.dart';
 
 void main() {
   runApp(SafetyTravelApp());
@@ -24,7 +25,8 @@ class SafetyTravelApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: WelcomePage(), // Chuyển đến WelcomePage khi khởi động
+      home: WelcomePage(), 
+      
     );
   }
 }
@@ -41,11 +43,11 @@ class HomePageState extends State<HomePage> {
   final PageController _pageControllerBooking = PageController();
 
   int _currentIndex = 0;
-  
+
   @override
   void initState() {
     super.initState();
-    
+
     _pageController.addListener(() {
       setState(() {});
     });
@@ -57,19 +59,20 @@ class HomePageState extends State<HomePage> {
       _currentIndex = index;
     });
   }
- 
+
   @override
   Widget build(BuildContext context) {
     // Mảng lưu các màn hình khi nhấn vào từng nút
     final List<Widget> screens = [
       buildHomePage(),
-      const Center(child: Text('Mua vé')),
-      const Center(child: Text('Thuê xe')),
+      BuyTicketPage(),
+      RentVehiclePage(),
       const Center(child: Text('Đặt xe')),
       const Center(child: Text('Làm đối tác')),
     ];
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: const AppBarWidget(),
 
       body: screens[_currentIndex], // Hiển thị nội dung theo tab hiện tại
@@ -77,7 +80,7 @@ class HomePageState extends State<HomePage> {
         currentIndex: _currentIndex, // Chỉ mục của tab hiện tại
         onTap: _onTabTapped, // Hàm thay đổi tab
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.orange, // Màu sắc khi tab được chọn
+        selectedItemColor: const Color.fromARGB(255, 214, 72, 32), // Màu sắc khi tab được chọn
         unselectedItemColor: Colors.grey, // Màu sắc khi tab không được chọn
         items: const [
           BottomNavigationBarItem(
@@ -118,9 +121,13 @@ class HomePageState extends State<HomePage> {
             const SizedBox(height: 20),
             // Phần Các tuyến đường phổ biến
             PopularRoutesWidget(
-              popularRoutes: popularRoutes,
-              pageControllerRoutes: _pageControllerRoutes,
-            ),
+                popularRoutes: popularRoutes,
+                pageControllerRoutes: _pageControllerRoutes,
+                onTap: () {
+                  setState(() {
+                    _currentIndex = 1;
+                  });
+                }),
             const SizedBox(height: 20),
             //Phần Thuê xe tự lái hoặc có tài xế
             CarRentalWidget(
@@ -168,4 +175,4 @@ class HomePageState extends State<HomePage> {
       ),
     );
   }
-}
+}     

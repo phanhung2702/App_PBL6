@@ -17,11 +17,11 @@ class RegisterPageState extends State<RegisterPage> {
   String? _selectedGender; // Biến lưu trữ giới tính
 
   void _register() {
-    // Thực hiện đăng ký và điều hướng đến HomePage
+    // Thực hiện đăng ký và điều hướng đến LoginPage
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => LoginPage()),
-      (route) => false,
+      (Route<dynamic> route) => false,
     );
   }
 
@@ -91,7 +91,7 @@ class RegisterPageState extends State<RegisterPage> {
                         controller: _phoneController,
                         decoration: InputDecoration(
                           labelText: 'SĐT',
-                          prefixIcon: const Icon(Icons.phone, color: Colors.orange),
+                          prefixIcon: const Icon(Icons.phone, color: Color.fromARGB(255, 214, 72, 32),),
                           filled: true,
                           fillColor: Colors.grey[200],
                           border: OutlineInputBorder(
@@ -107,7 +107,7 @@ class RegisterPageState extends State<RegisterPage> {
                         controller: _emailController,
                         decoration: InputDecoration(
                           labelText: 'Email',
-                          prefixIcon: const Icon(Icons.email, color: Colors.orange),
+                          prefixIcon: const Icon(Icons.email, color: Color.fromARGB(255, 214, 72, 32),),
                           filled: true,
                           fillColor: Colors.grey[200],
                           border: OutlineInputBorder(
@@ -123,7 +123,7 @@ class RegisterPageState extends State<RegisterPage> {
                         controller: _passwordController,
                         decoration: InputDecoration(
                           labelText: 'Mật khẩu',
-                          prefixIcon: const Icon(Icons.lock, color: Colors.orange),
+                          prefixIcon: const Icon(Icons.lock, color: Color.fromARGB(255, 214, 72, 32),),
                           filled: true,
                           fillColor: Colors.grey[200],
                           border: OutlineInputBorder(
@@ -140,7 +140,7 @@ class RegisterPageState extends State<RegisterPage> {
                         controller: _nameController,
                         decoration: InputDecoration(
                           labelText: 'Tên của bạn',
-                          prefixIcon: const Icon(Icons.person, color: Colors.orange),
+                          prefixIcon: const Icon(Icons.person, color: Color.fromARGB(255, 214, 72, 32),),
                           filled: true,
                           fillColor: Colors.grey[200],
                           border: OutlineInputBorder(
@@ -160,7 +160,7 @@ class RegisterPageState extends State<RegisterPage> {
                               readOnly: true,
                               decoration: InputDecoration(
                                 labelText: 'Ngày tháng năm sinh',
-                                prefixIcon: const Icon(Icons.calendar_today, color: Colors.orange),
+                                prefixIcon: const Icon(Icons.calendar_today, color: Color.fromARGB(255, 214, 72, 32),),
                                 filled: true,
                                 fillColor: Colors.grey[200],
                                 border: OutlineInputBorder(
@@ -175,7 +175,7 @@ class RegisterPageState extends State<RegisterPage> {
                                   firstDate: DateTime(1900),
                                   lastDate: DateTime.now(),
                                 );
-                                if (pickedDate != null && pickedDate != _selectedDate) {
+                                if (pickedDate != _selectedDate) {
                                   setState(() {
                                     _selectedDate = pickedDate;
                                   });
@@ -220,7 +220,7 @@ class RegisterPageState extends State<RegisterPage> {
                         child: ElevatedButton(
                           onPressed: _register,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
+                            backgroundColor: const Color.fromARGB(255, 214, 72, 32),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
