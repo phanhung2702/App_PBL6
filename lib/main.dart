@@ -1,5 +1,7 @@
+import 'package:app_pbl6/Tabs/BookVehicle/book_vehicle.dart';
 import 'package:app_pbl6/Tabs/RentVehicle/rent_vehicle.dart';
-import 'package:app_pbl6/welcome_page.dart';
+import 'package:app_pbl6/Tabs/Partners/partners.dart';
+import 'package:app_pbl6/splash_screen.dart';
 import 'package:app_pbl6/Screen/app_bar_widget.dart';
 import 'package:app_pbl6/Screen/booking_widget.dart';
 import 'package:app_pbl6/Screen/car_rental_widget.dart';
@@ -11,7 +13,7 @@ import 'package:app_pbl6/Screen/reason_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:app_pbl6/Screen/sale_widget.dart';
 import 'package:app_pbl6/Screen/customer_reviews_widget.dart';
-import 'package:app_pbl6/Tabs/buy_ticket.dart';
+import 'package:app_pbl6/Tabs/BuyTicket/buy_ticket.dart';
 
 void main() {
   runApp(SafetyTravelApp());
@@ -25,7 +27,7 @@ class SafetyTravelApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: WelcomePage(), 
+      home:  SplashScreen(), 
       
     );
   }
@@ -67,8 +69,8 @@ class HomePageState extends State<HomePage> {
       buildHomePage(),
       BuyTicketPage(),
       RentVehiclePage(),
-      const Center(child: Text('Đặt xe')),
-      const Center(child: Text('Làm đối tác')),
+      BookVehiclePage(),
+      PartnersPage(),
     ];
 
     return Scaffold(

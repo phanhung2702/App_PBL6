@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:app_pbl6/Login/login_page.dart';
 
 class ResetPasswordPage extends StatelessWidget {
   final String token;
@@ -21,13 +22,14 @@ class ResetPasswordPage extends StatelessWidget {
 
     // Thực hiện POST request để đổi mật khẩu
     final response = await http.post(
-      Uri.parse('http://10.0.2.2:8080/api/v1/auth/changep-assword'),
+      Uri.parse('http://10.0.2.2:8080/api/v1/auth/change-password'),
       headers: {
         'Content-Type': 'application/json',
       },
       body: json.encode({
         'token': token,
-        'newPassword': _newPasswordController.text,
+        'password': _newPasswordController.text,
+        'confirmPassword': _confirmPasswordController.text,
       }),
     );
 
@@ -38,7 +40,11 @@ class ResetPasswordPage extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Đặt lại mật khẩu thành công.')),
       );
-      Navigator.pop(context); // Quay lại trang đăng nhập hoặc trang trước đó
+      // Điều hướng về trang Đăng nhập
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()), // LoginPage() là trang đăng nhập của bạn
+    );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Có lỗi xảy ra. Vui lòng thử lại.')),

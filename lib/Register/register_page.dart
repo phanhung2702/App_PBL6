@@ -1,7 +1,9 @@
-import 'package:app_pbl6/Login/login_page.dart';
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
-
+import 'package:http/http.dart' as http;
+import 'package:app_pbl6/services/otp_page.dart';
+import 'package:logger/logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -9,20 +11,126 @@ class RegisterPage extends StatefulWidget {
 }
 
 class RegisterPageState extends State<RegisterPage> {
-  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
-  DateTime? _selectedDate; // Biến lưu trữ ngày sinh
-  String? _selectedGender; // Biến lưu trữ giới tính
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+  final Logger _logger = Logger();
+  // URL API đăng ký
+  final String _registerUrl = "http://10.0.2.2:8080/api/v1/auth/register";
 
-  void _register() {
-    // Thực hiện đăng ký và điều hướng đến LoginPage
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginPage()),
-      (Route<dynamic> route) => false,
+  // Kiểm tra mật khẩu và xác nhận mật khẩu
+
+  // Xử lý phản hồi API và hiển thị thông báo
+  void _handleApiResponse(Map<String, dynamic> response) {
+  // In ra toàn bộ lỗi để kiểm tra
+  _logger.e('API Response: $response');  
+
+  if (response['statusCode'] == 400) {
+    // Giải mã lỗi nếu cần
+    String errorMessage = _decodeString(response['error']);
+
+    // Hiển thị thông báo lỗi từ API
+    _showErrorDialog(errorMessage);
+  } else if (response['statusCode'] == 201) {
+    // Thành công: Đăng ký thành công, yêu cầu kiểm tra email
+    _showSuccessDialog(response['data']?['info'] ?? 'Đăng ký thành công. Vui lòng kiểm tra email!');
+  } else {
+    // Lỗi không xác định
+    _showErrorDialog('Đã xảy ra lỗi không xác định. Vui lòng thử lại.');
+  }
+}
+
+// Hàm giải mã chuỗi nếu có sự cố về encoding
+String _decodeString(String? input) {
+  if (input == null) return '';
+  try {
+    return utf8.decode(input.runes.toList());
+  } catch (e) {
+    return input;  // Trả về chuỗi gốc nếu không thể giải mã
+  }
+}
+
+  // Hiển thị thông báo lỗi
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Lỗi'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Đóng'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  // Hiển thị thông báo thành công
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Thành công'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Sau khi đăng ký thành công, điều hướng sang trang OTP
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          OtpPage(email: _emailController.text)),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Gửi yêu cầu đăng ký đến API
+  Future<void> _register() async {
+    // Chuẩn bị dữ liệu để gửi đến API
+    final Map<String, String> requestBody = {
+      "email": _emailController.text,
+      "password": _passwordController.text,
+      "confirmPassword": _confirmPasswordController.text,
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(_registerUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(requestBody),
+      );
+
+      final responseData = json.decode(response.body);
+
+      // Xử lý phản hồi từ API
+      _handleApiResponse({
+        "statusCode": response.statusCode,
+        "data": responseData,
+        "error": responseData['error'],
+      });
+       if (response.statusCode == 201) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('email', _emailController.text);
+    }
+    } catch (e) {
+      _showErrorDialog('Đã xảy ra lỗi. Vui lòng thử lại');
+    }
   }
 
   @override
@@ -34,7 +142,7 @@ class RegisterPageState extends State<RegisterPage> {
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage("assets/bg/bg2.jpg"), // Đường dẫn tới ảnh nền
+                image: AssetImage("assets/bg/bg2.jpg"),
                 fit: BoxFit.cover,
               ),
             ),
@@ -46,7 +154,7 @@ class RegisterPageState extends State<RegisterPage> {
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () {
-                Navigator.pop(context); // Quay lại trang trước đó
+                Navigator.pop(context);
               },
             ),
           ),
@@ -57,7 +165,8 @@ class RegisterPageState extends State<RegisterPage> {
               widthFactor: 1,
               heightFactor: 0.85,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.9),
                   borderRadius: const BorderRadius.only(
@@ -69,7 +178,6 @@ class RegisterPageState extends State<RegisterPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Tên App
                       Text(
                         'Đăng Ký Tài Khoản',
                         style: TextStyle(
@@ -85,29 +193,13 @@ class RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-
-                      // Ô nhập SĐT
-                      TextField(
-                        controller: _phoneController,
-                        decoration: InputDecoration(
-                          labelText: 'SĐT',
-                          prefixIcon: const Icon(Icons.phone, color: Color.fromARGB(255, 214, 72, 32),),
-                          filled: true,
-                          fillColor: Colors.grey[200],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Ô nhập email
+                      // Các trường nhập liệu
                       TextField(
                         controller: _emailController,
                         decoration: InputDecoration(
                           labelText: 'Email',
-                          prefixIcon: const Icon(Icons.email, color: Color.fromARGB(255, 214, 72, 32),),
+                          prefixIcon: const Icon(Icons.email,
+                              color: Color.fromARGB(255, 214, 72, 32)),
                           filled: true,
                           fillColor: Colors.grey[200],
                           border: OutlineInputBorder(
@@ -117,13 +209,12 @@ class RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-
-                      // Ô nhập mật khẩu
                       TextField(
                         controller: _passwordController,
                         decoration: InputDecoration(
                           labelText: 'Mật khẩu',
-                          prefixIcon: const Icon(Icons.lock, color: Color.fromARGB(255, 214, 72, 32),),
+                          prefixIcon: const Icon(Icons.lock,
+                              color: Color.fromARGB(255, 214, 72, 32)),
                           filled: true,
                           fillColor: Colors.grey[200],
                           border: OutlineInputBorder(
@@ -134,13 +225,12 @@ class RegisterPageState extends State<RegisterPage> {
                         obscureText: true,
                       ),
                       const SizedBox(height: 20),
-
-                      // Ô nhập tên
                       TextField(
-                        controller: _nameController,
+                        controller: _confirmPasswordController,
                         decoration: InputDecoration(
-                          labelText: 'Tên của bạn',
-                          prefixIcon: const Icon(Icons.person, color: Color.fromARGB(255, 214, 72, 32),),
+                          labelText: 'Xác nhận mật khẩu',
+                          prefixIcon: const Icon(Icons.lock,
+                              color: Color.fromARGB(255, 214, 72, 32)),
                           filled: true,
                           fillColor: Colors.grey[200],
                           border: OutlineInputBorder(
@@ -148,83 +238,20 @@ class RegisterPageState extends State<RegisterPage> {
                             borderSide: BorderSide.none,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Chọn ngày tháng năm sinh
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: TextEditingController(text: _selectedDate == null ? '' : _selectedDate!.toLocal().toString().split(' ')[0]),
-                              readOnly: true,
-                              decoration: InputDecoration(
-                                labelText: 'Ngày tháng năm sinh',
-                                prefixIcon: const Icon(Icons.calendar_today, color: Color.fromARGB(255, 214, 72, 32),),
-                                filled: true,
-                                fillColor: Colors.grey[200],
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                              onTap: () async {
-                                DateTime? pickedDate = await showDatePicker(
-                                  context: context,
-                                  initialDate: _selectedDate ?? DateTime.now(),
-                                  firstDate: DateTime(1900),
-                                  lastDate: DateTime.now(),
-                                );
-                                if (pickedDate != _selectedDate) {
-                                  setState(() {
-                                    _selectedDate = pickedDate;
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Chọn giới tính
-                      DropdownButtonFormField<String>(
-                        value: _selectedGender,
-                        decoration: InputDecoration(
-                          labelText: 'Giới tính',
-                          filled: true,
-                          fillColor: Colors.grey[200],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        items: <String>['Nam', 'Nữ', 'Khác']
-                            .map<DropdownMenuItem<String>>((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        hint: const Text('Chọn giới tính'),
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            _selectedGender = newValue;
-                          });
-                        },
+                        obscureText: true,
                       ),
                       const SizedBox(height: 30),
-
-                      // Nút đăng ký
                       Center(
                         child: ElevatedButton(
                           onPressed: _register,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromARGB(255, 214, 72, 32),
+                            backgroundColor:
+                                const Color.fromARGB(255, 214, 72, 32),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 16, horizontal: 32),
                           ),
                           child: const Text(
                             'Đăng Ký',

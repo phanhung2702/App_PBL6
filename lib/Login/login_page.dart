@@ -66,7 +66,16 @@ class LoginPageState extends State<LoginPage> {
       if (data['message'] == "Login successfully") {
         if (data['data'] != null && data['data']['access_token'] != null) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('token', data['data']['access_token']);
+          final accountData = data['data']['accountLogin'];
+        
+        await prefs.setString('token', data['data']['access_token']);
+        await prefs.setInt('userId', accountData['id']);
+        await prefs.setString('email', accountData['email']);
+        await prefs.setString('name', accountData['name']);
+        await prefs.setString('phoneNumber', accountData['phoneNumber'] ?? '');
+        await prefs.setString('gender', accountData['gender'] ?? '');
+        await prefs.setString('avatar', accountData['avatar'] ?? '');
+        await prefs.setStringList('roles', List<String>.from(accountData['roles']));
           logger.w("Access Token đã lưu: ${data['data']['access_token']}");
         } else {
           logger.w("Access token không tồn tại trong phản hồi từ API.");

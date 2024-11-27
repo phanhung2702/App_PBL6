@@ -5,6 +5,7 @@ import 'package:app_pbl6/Register/register_page.dart';
 class WelcomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       body: Stack(
         children: [
