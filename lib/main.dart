@@ -1,3 +1,4 @@
+
 import 'package:app_pbl6/Tabs/BookVehicle/book_vehicle.dart';
 import 'package:app_pbl6/Tabs/RentVehicle/rent_vehicle.dart';
 import 'package:app_pbl6/Tabs/Partners/partners.dart';
@@ -71,6 +72,7 @@ class HomePageState extends State<HomePage> {
       RentVehiclePage(),
       BookVehiclePage(),
       PartnersPage(),
+      
     ];
 
     return Scaffold(

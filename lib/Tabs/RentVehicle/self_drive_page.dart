@@ -1,3 +1,4 @@
+import 'package:app_pbl6/Tabs/RentVehicle/seflvehicle_detail.dart';
 import 'package:flutter/material.dart';
 
 class SelfDrivePage extends StatefulWidget {
@@ -240,7 +241,28 @@ class SelfDrivePageState extends State<SelfDrivePage> {
     required int pricePerHour,
     required int discountedPricePerHour,
   }) {
-    return Card(
+    return GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SelfDriveDetailsPage(
+            vehicle: {
+              'image': image,
+              'discount': discount,
+              'name': name,
+              'location': location,
+              'engineCapacity': engineCapacity,
+              'year': year,
+              'rating': rating,
+              'pricePerHour': pricePerHour,
+              'discountedPricePerHour': discountedPricePerHour,
+            },
+          ),
+        ),
+      );
+    },
+    child: Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8.0),
       ),
@@ -371,6 +393,7 @@ class SelfDrivePageState extends State<SelfDrivePage> {
           ),
         ],
       ),
+    ),
     );
   }
 }

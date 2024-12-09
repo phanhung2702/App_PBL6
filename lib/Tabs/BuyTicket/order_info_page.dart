@@ -2,29 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class OrderInformationPage extends StatefulWidget {
-  final DateTime purchaseTime;
-  final String tripDate;
-  final String departureTime;
-  final String arrivalTime;
-  final String departureLocation;
-  final String arrivalLocation;
-  final String vehicleType;
-  final int ticketPrice;
-  final int discount;
-  final int totalAmount;
+  
 
   const OrderInformationPage({
     super.key,
-    required this.purchaseTime,
-    required this.tripDate,
-    required this.departureTime,
-    required this.arrivalTime,
-    required this.departureLocation,
-    required this.arrivalLocation,
-    required this.vehicleType,
-    required this.ticketPrice,
-    required this.discount,
-    required this.totalAmount,
+     required busTripScheduleId, required String departureDate, required arrivalProvince,
   });
 
   @override

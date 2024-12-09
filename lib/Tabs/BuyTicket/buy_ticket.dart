@@ -1,7 +1,10 @@
-import 'package:app_pbl6/Tabs/BuyTicket/order_info_page.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'package:app_pbl6/Tabs/BuyTicket/order_info_page.dart';
+import 'package:logger/logger.dart';
 
 // Danh sách các hình ảnh cho tab Mua vé
 final List<String> buyTicketImages = [
@@ -22,34 +25,92 @@ class BuyTicketPageState extends State<BuyTicketPage> {
   DateTime? selectedDate;
   final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
   bool showResults = false;
+  bool isExpanded = false;
+  final Logger logger = Logger();
+  late Future<List<String>> provincesFuture;
+  // Hàm loại bỏ "Tỉnh" và "Thành phố" từ tên tỉnh thành
+  String cleanProvinceName(String name) {
+  return name.replaceAll(RegExp(r"^(Tỉnh|Thành phố)\s+"), "");
+}
 
-  // Danh sách giả lập kết quả tìm kiếm
-  final List<Map<String, dynamic>> results = [
-    {
-      'name': 'Nhà xe A',
-      'type': 'Limousine 9 chỗ',
-      'rating': 4.7,
-      'departureTime': '08:00',
-      'departurePlace': 'Hà Nội',
-      'arrivalTime': '13:00',
-      'arrivalPlace': 'Thanh Hóa',
-      'originalPrice': 300000,
-      'discount': 10,
-      'finalPrice': 270000,
-    },
-    {
-      'name': 'Nhà xe A',
-      'type': 'Xe ghế ngồi 16 chỗ',
-      'rating': 4.5,
-      'departureTime': '18:00',
-      'departurePlace': 'Hà Nội',
-      'arrivalTime': '23:00',
-      'arrivalPlace': 'Thanh Hóa',
-      'originalPrice': 300000,
-      'discount': 10,
-      'finalPrice': 270000,
-    },
-  ];
+  final List<Map<String, dynamic>> results = [];
+  List<String> busNames = []; // Danh sách nhà xe
+
+  Future<List<String>> fetchBusNames() async {
+    final response = await http
+        .get(Uri.parse('http://10.0.2.2:8080/api/v1/bus-partner/businessName'));
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data =
+          json.decode(utf8.decode(response.bodyBytes));
+
+      // Kiểm tra nếu có dữ liệu trong trường "data" và trả về
+      if (data['data'] != null) {
+        return List<String>.from(data['data']);
+      } else {
+        throw Exception('Dữ liệu nhà xe không hợp lệ');
+      }
+    } else {
+      throw Exception('Không thể tải dữ liệu nhà xe');
+    }
+  }
+
+  // Hàm lấy dữ liệu các tỉnh thành từ API
+  Future<List<String>> _getProvinces() async {
+    final response =
+        await http.get(Uri.parse('https://provinces.open-api.vn/api/?depth=1'));
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+      return data
+          .map<String>((province) => province['name'] as String)
+          .toList();
+    } else {
+      throw Exception('Không thể tải dữ liệu các tỉnh thành');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchBusSchedules({
+  required String filter,
+  required String departureLocation,
+  required String arrivalProvince,
+  required String departureDate,
+}) async {
+  // Log các tham số
+  logger.i('Filter: $filter');
+  logger.i('Departure Location: $departureLocation');
+  logger.i('Arrival Province: $arrivalProvince');
+  logger.i('Departure Date: $departureDate');
+
+  // Tạo chuỗi truy vấn thủ công mà không bị mã hóa tự động
+  final queryString = 'filter=busTrip.busPartner.businessPartner.businessName:\'$filter\'&'
+      'departureLocation=$departureLocation&'
+      'arrivalProvince=$arrivalProvince&'
+      'departureDate=$departureDate';
+
+  // Tạo URL với chuỗi truy vấn thủ công
+  final uri = Uri.parse('http://10.0.2.2:8080/api/v1/user/busTripSchedules?$queryString');
+
+  // Log thông tin gửi lên server
+  logger.i('Thông tin gửi lên server: $uri');
+
+  // Gửi yêu cầu GET
+  final response = await http.get(uri);
+
+  // Xử lý kết quả trả về
+  if (response.statusCode == 200) {
+    final Map<String, dynamic> responseData =
+        json.decode(utf8.decode(response.bodyBytes));
+    logger.i('Kết quả: $responseData');
+
+    if (responseData['data'] != null && responseData['data']['result'] != null) {
+      return List<Map<String, dynamic>>.from(responseData['data']['result']);
+    } else {
+      throw Exception('Dữ liệu không hợp lệ');
+    }
+  } else {
+    throw Exception('Lỗi kết nối: ${response.statusCode}');
+  }
+}
 
   // Hàm chọn ngày đi
   Future<void> _selectDate(BuildContext context) async {
@@ -64,6 +125,19 @@ class BuyTicketPageState extends State<BuyTicketPage> {
         selectedDate = picked;
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchBusNames().then((names) {
+      setState(() {
+        busNames = names;
+      });
+    }).catchError((error) {
+      logger.e('Lỗi: $error');
+    });
+    provincesFuture = _getProvinces(); // Gọi API để lấy danh sách tỉnh thành
   }
 
   @override
@@ -157,14 +231,13 @@ class BuyTicketPageState extends State<BuyTicketPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Label và Dropdown để chọn nhà xe
-                  Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Expanded(
-                        flex: 1,
-                        child: Text('Chọn nhà xe:'),
-                      ),
-                      Expanded(
-                        flex: 2,
+                      const Text('Chọn nhà xe:'),
+                      SizedBox(
+                        width:
+                            300.0, // Giới hạn chiều rộng của DropdownButtonFormField
                         child: DropdownButtonFormField<String>(
                           decoration: const InputDecoration(
                             border: OutlineInputBorder(),
@@ -172,9 +245,7 @@ class BuyTicketPageState extends State<BuyTicketPage> {
                           value: selectedBus,
                           items: [
                             'Chọn nhà xe',
-                            'Nhà xe A',
-                            'Nhà xe B',
-                            'Nhà xe C'
+                            ...busNames, // Hiển thị các nhà xe từ API
                           ].map<DropdownMenuItem<String>>((String value) {
                             return DropdownMenuItem<String>(
                               value: value,
@@ -193,98 +264,121 @@ class BuyTicketPageState extends State<BuyTicketPage> {
                   const SizedBox(height: 10),
 
                   // Label và Dropdown để chọn nơi xuất phát
-                  Row(
-                    children: [
-                      const Expanded(
-                        flex: 1,
-                        child: Text('Nơi xuất phát:'),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                          ),
-                          value: selectedStartPlace,
-                          items: [
-                            'Nơi xuất phát',
-                            'Hà Nội',
-                            'Hồ Chí Minh',
-                            'Đà Nẵng'
-                          ].map<DropdownMenuItem<String>>((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                          onChanged: (newValue) {
-                            setState(() {
-                              selectedStartPlace = newValue!;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
+                  Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    const Text('Nơi xuất phát:'),
+    SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: FutureBuilder<List<String>>(
+        future: _getProvinces(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          } else if (snapshot.hasError) {
+            return Text('Lỗi: ${snapshot.error}');
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Text('Không có dữ liệu');
+          } else {
+            final provinces = snapshot.data!.map((province) => cleanProvinceName(province)).toList(); // Loại bỏ "Tỉnh" và "Thành phố"
+            return SizedBox(
+              width: 300.0,
+              child: DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                ),
+                value: selectedStartPlace,
+                items: ['Nơi xuất phát', ...provinces]
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedStartPlace = newValue!;
+                  });
+                },
+              ),
+            );
+          }
+        },
+      ),
+    ),
+  ],
+),
+
                   const SizedBox(height: 10),
 
                   // Label và Dropdown để chọn nơi đến
-                  Row(
-                    children: [
-                      const Expanded(
-                        flex: 1,
-                        child: Text('Nơi đến:'),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                          ),
-                          value: selectedDestination,
-                          items: [
-                            'Nơi đến',
-                            'Nha Trang',
-                            'Huế',
-                            'Cần Thơ',
-                            'Thanh Hóa',
-                            'Ninh Bình'
-                          ].map<DropdownMenuItem<String>>((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                          onChanged: (newValue) {
-                            setState(() {
-                              selectedDestination = newValue!;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
+                  Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    const Text('Nơi đến:'),
+    SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: FutureBuilder<List<String>>(
+        future: _getProvinces(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          } else if (snapshot.hasError) {
+            return Text('Lỗi: ${snapshot.error}');
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Text('Không có dữ liệu');
+          } else {
+            final provinces = snapshot.data!.map((province) => cleanProvinceName(province)).toList(); // Loại bỏ "Tỉnh" và "Thành phố"
+            return SizedBox(
+              width: 300.0,
+              child: DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                ),
+                value: selectedDestination,
+                items: ['Nơi đến', ...provinces]
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedDestination = newValue!;
+                  });
+                },
+              ),
+            );
+          }
+        },
+      ),
+    ),
+  ],
+),
+
                   const SizedBox(height: 10),
 
-                  // Label cho chọn ngày đi
-                  Row(
+                  // Chọn ngày đi
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Expanded(
-                        flex: 1,
-                        child: Text('Ngày đi:'),
-                      ),
-                      Expanded(
-                        flex: 2,
+                      const Text('Chọn ngày:'),
+                      SizedBox(
+                        width: 300.0, // Giới hạn chiều rộng của ô chọn ngày
                         child: GestureDetector(
                           onTap: () => _selectDate(context),
-                          child: AbsorbPointer(
-                            child: TextFormField(
-                              decoration: InputDecoration(
-                                labelText: selectedDate != null
-                                    ? dateFormat.format(selectedDate!)
-                                    : 'Chọn ngày',
-                                border: const OutlineInputBorder(),
-                              ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 10, horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Text(
+                              selectedDate != null
+                                  ? dateFormat.format(selectedDate!)
+                                  : 'Chọn ngày',
                             ),
                           ),
                         ),
@@ -293,183 +387,198 @@ class BuyTicketPageState extends State<BuyTicketPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Nút tìm kiếm nằm ở dưới cùng của khung
-                  SizedBox(
-                    width: double.infinity, // Chiều rộng đầy đủ
+                  // Button tìm kiếm vé
+                  Center(
                     child: ElevatedButton(
-                      onPressed: () {
-                        if (selectedBus == 'Chọn nhà xe' ||
-                            selectedStartPlace == 'Nơi xuất phát' ||
-                            selectedDestination == 'Nơi đến' ||
-                            selectedDate == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Vui lòng chọn đầy đủ thông tin')),
+                      onPressed: () async {
+                        setState(() {
+                          showResults =
+                              false; // Đảm bảo kết quả cũ sẽ bị xóa khi tìm kiếm lại
+                        });
+
+                        try {
+                          // Thực hiện gọi API để lấy danh sách vé xe
+                          final busSchedules = await fetchBusSchedules(
+                            filter: selectedBus,
+                            departureLocation: selectedStartPlace,
+                            arrivalProvince: selectedDestination,
+                            departureDate: selectedDate != null
+                                ? DateFormat('yyyy-MM-dd').format(selectedDate!)
+                                : '',
                           );
-                        } else {
+                          logger.i('Dữ liệu trả về từ API: $busSchedules');
                           setState(() {
-                            showResults = true;
+                            showResults = true; // Hiển thị kết quả tìm kiếm
+                            results.clear(); // Xóa kết quả cũ
+                            results.addAll(
+                                busSchedules); // Thêm dữ liệu mới vào danh sách kết quả
                           });
+                        } catch (error) {
+                          // Xử lý khi gặp lỗi
+                          logger.e('Lỗi: $error');
                         }
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(
-                            255, 214, 72, 32), // Màu nền của nút
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 15), // Độ cao của nút
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(10), // Bo tròn các góc
-                        ),
-                      ),
-                      child: const Text(
-                        'Tìm kiếm', // Văn bản hiển thị trên nút
-                        style: TextStyle(
-                          fontSize: 16, // Kích thước chữ
-                          color: Colors.white, // Màu chữ
-                        ),
-                      ),
+                      child: const Text('Tìm vé'),
                     ),
                   ),
                 ],
               ),
             ),
-            if (showResults) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Kết quả:',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${results.length} chuyến',
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () {
-                        // Mở bộ lọc
-                      },
-                      icon: const Icon(Icons.filter_list, color: Colors.orange),
-                    ),
-                  ],
+            const SizedBox(height: 20),
+
+            // Hiển thị kết quả tìm kiếm
+            showResults
+    ? Column(
+        children: results.map((result) {
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            elevation: 5,
+            child: Column(
+              children: [
+                // Image at the top
+                Image.network(
+                  result['busInfo']['imageRepresentative'] ?? '',
+                  width: double.infinity,
+                  height: 150,
+                  fit: BoxFit.cover,
                 ),
-              ),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: results.length,
-                itemBuilder: (context, index) {
-                  final result = results[index];
-                  return Container(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.grey,
-                          blurRadius: 5,
-                          offset: Offset(0, 3),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Business name
+                      Text(
+                        result['businessPartnerInfo']['name'] ?? 'Không có tên',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          result['name'],
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Loại xe: ${result['type']} (${result['rating']} ★)',
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                        Text(
-                          'Thời gian đón: ${result['departureTime']} tại ${result['departurePlace']}',
-                        ),
-                        Text(
-                          'Thời gian đến: ${result['arrivalTime']} tại ${result['arrivalPlace']}',
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Giá gốc: ${result['originalPrice']}đ',
-                                  style: const TextStyle(
-                                    decoration: TextDecoration.lineThrough,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                Text(
-                                  'Giảm giá: ${result['discount']}%',
-                                  style: const TextStyle(color: Colors.green),
-                                ),
-                                Text(
-                                  'Giá sau giảm: ${result['finalPrice']}đ',
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.orange),
-                                ),
-                              ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Bus type
+                      Text(
+                        '${result['busInfo']['busType']['name']}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Departure & Arrival with icons and time
+                      Column(
+  children: [
+    // Departure Location và Time
+    Row(
+      children: [
+        const Icon(Icons.location_on, size: 20),
+        const SizedBox(width: 4),
+        Text(
+          '${result['departureTime']} ${result['busTripInfo']['departureLocation']}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ],
+    ),
+    const SizedBox(height: 8),
+
+    // Arrival Location và Time
+    Row(
+      children: [
+        const Icon(Icons.location_on, size: 20),
+        const SizedBox(width: 4),
+        Text(
+          '${result['arrivalTime']} ${result['busTripInfo']['arrivalLocation']}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ],
+    ),
+  ],
+),
+const SizedBox(height: 8),
+
+
+                      
+                      Row(
+                        children: [
+                          const Spacer(),
+                          Text(
+                            '${result['priceTicket']}',
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
                             ),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Thông tin chi tiết
+                Row(
+                children: [
+                  const Text(
+                    'Chi tiết chuyến xe',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      isExpanded ? Icons.expand_less : Icons.expand_more,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        isExpanded = !isExpanded; // Chuyển trạng thái khi nhấn
+                      });
+                    },
+                  ),
+    
+                      const Spacer(),
+                      ElevatedButton(
+                        onPressed: () {
+                           Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => OrderInformationPage(
-                                      
-                                      purchaseTime: DateTime.now(),
-                                      tripDate: '25-11-2024',
-                                      vehicleType: 'Xe Limousine 9 chỗ',
-                                      ticketPrice: 300000, // Tiền vé
-                                      departureTime: '8:00', 
-                                      arrivalTime: '13:00',
-                                      departureLocation: 'Hà Nội',
-                                      arrivalLocation: 'Thanh Hóa',
-                                      discount: 10, // Giảm giá
-                                      totalAmount: 180000,  // Tổng tiền cần thanh toán
+                                      busTripScheduleId: result['busTripScheduleId'],
+                                      departureDate: DateFormat('yyyy-MM-dd').format(selectedDate!), // Ngày khởi hành (thay bằng ngày thực tế nếu cần)
+                                    arrivalProvince: result['busTripInfo']['arrivalLocation'],
                                     ),
                                   ),
                                 );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    const Color.fromARGB(255, 214, 72, 32),
-                              ),
-                              child: const Text(
-                                'Đặt ngay',
-                                style: TextStyle(
-                                  color: Colors.white, // Màu chữ trắng
-                                ),
-                              ),
-                            ),
-                          ],
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 214, 72, 32),
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
+                        child: const Text('Đặt ngay', style: TextStyle(fontSize: 18, color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Kiểm tra nếu isExpanded là true thì mới hiển thị các thông tin chi tiết
+                  isExpanded
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Giảm giá: ${result['discountPercentage']}'),
+                            Text('Đón/trả: ${result['pickupDropoff']}'),
+                            Text('Đánh giá: ${result['rating']}'),
+                            Text('Chính sách: ${result['policy']}'),
+                            Text('Tiện ích: ${result['amenities']}'),
+                          ],
+                        )
+                      : const SizedBox(), // Nếu chưa click thì không hiển thị gì
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        )
+                      : const SizedBox.shrink(),
+
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                  }

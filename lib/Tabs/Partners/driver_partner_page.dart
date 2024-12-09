@@ -20,7 +20,7 @@ class DriverPartnerPage extends StatelessWidget {
           // Background image
           Positioned.fill(
             child: Image.asset(
-              'assets/bg/bg3.jpg',
+              'assets/bg/bg1.jpg',
               fit: BoxFit.cover,
             ),
           ),
@@ -38,7 +38,7 @@ class DriverPartnerPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Color.fromARGB(255, 214, 72, 32),
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -49,7 +49,7 @@ class DriverPartnerPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color.fromARGB(255, 214, 72, 32),
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -58,7 +58,7 @@ class DriverPartnerPage extends StatelessWidget {
                   TextField(
                     decoration: InputDecoration(
                       labelText: "Tên tổ chức cho thuê xe",
-                      labelStyle: const TextStyle(color: Colors.white),
+                      labelStyle: const TextStyle(color: Colors.black),
                       filled: true,
                       fillColor: Colors.grey.withOpacity(0.1),
                       border: const OutlineInputBorder(),
@@ -68,7 +68,7 @@ class DriverPartnerPage extends StatelessWidget {
                   TextField(
                     decoration: InputDecoration(
                       labelText: "Website/Fanpage của bạn",
-                      labelStyle: const TextStyle(color: Colors.white),
+                      labelStyle: const TextStyle(color: Colors.black),
                       filled: true,
                       fillColor: Colors.grey.withOpacity(0.1),
                       border: const OutlineInputBorder(),
@@ -78,7 +78,7 @@ class DriverPartnerPage extends StatelessWidget {
                   TextField(
                     decoration: InputDecoration(
                       labelText: "Loại cho thuê",
-                      labelStyle: const TextStyle(color: Colors.white),
+                      labelStyle: const TextStyle(color: Colors.black),
                       filled: true,
                       fillColor: Colors.grey.withOpacity(0.1),
                       border: const OutlineInputBorder(),
@@ -88,7 +88,7 @@ class DriverPartnerPage extends StatelessWidget {
                   TextField(
                     decoration: InputDecoration(
                       labelText: "Người đại diện",
-                      labelStyle: const TextStyle(color: Colors.white),
+                      labelStyle: const TextStyle(color: Colors.black),
                       filled: true,
                       fillColor: Colors.grey.withOpacity(0.1),
                       border: const OutlineInputBorder(),
@@ -98,7 +98,7 @@ class DriverPartnerPage extends StatelessWidget {
                   TextField(
                     decoration: InputDecoration(
                       labelText: "Số điện thoại",
-                      labelStyle: const TextStyle(color: Colors.white),
+                      labelStyle: const TextStyle(color: Colors.black),
                       filled: true,
                       fillColor: Colors.grey.withOpacity(0.1),
                       border: const OutlineInputBorder(),
@@ -108,7 +108,7 @@ class DriverPartnerPage extends StatelessWidget {
                   TextField(
                     decoration: InputDecoration(
                       labelText: "Email",
-                      labelStyle: const TextStyle(color: Colors.white),
+                      labelStyle: const TextStyle(color: Colors.black),
                       filled: true,
                       fillColor: Colors.grey.withOpacity(0.1),
                       border: const OutlineInputBorder(),
@@ -118,7 +118,7 @@ class DriverPartnerPage extends StatelessWidget {
                   TextField(
                     decoration: InputDecoration(
                       labelText: "Địa chỉ",
-                      labelStyle: const TextStyle(color: Colors.white),
+                      labelStyle: const TextStyle(color: Colors.black),
                       filled: true,
                       fillColor: Colors.grey.withOpacity(0.1),
                       border: const OutlineInputBorder(),
@@ -134,7 +134,7 @@ class DriverPartnerPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -160,7 +160,7 @@ class DriverPartnerPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black,
                     ),
                   ),
                 ],

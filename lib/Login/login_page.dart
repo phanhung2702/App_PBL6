@@ -66,20 +66,15 @@ class LoginPageState extends State<LoginPage> {
       if (data['message'] == "Login successfully") {
         if (data['data'] != null && data['data']['access_token'] != null) {
           final prefs = await SharedPreferences.getInstance();
-          final accountData = data['data']['accountLogin'];
-        
-        await prefs.setString('token', data['data']['access_token']);
-        await prefs.setInt('userId', accountData['id']);
-        await prefs.setString('email', accountData['email']);
-        await prefs.setString('name', accountData['name']);
-        await prefs.setString('phoneNumber', accountData['phoneNumber'] ?? '');
-        await prefs.setString('gender', accountData['gender'] ?? '');
-        await prefs.setString('avatar', accountData['avatar'] ?? '');
-        await prefs.setStringList('roles', List<String>.from(accountData['roles']));
+
+          await prefs.setString('access_token', data['data']['access_token']);
+
           logger.w("Access Token đã lưu: ${data['data']['access_token']}");
         } else {
           logger.w("Access token không tồn tại trong phản hồi từ API.");
         }
+
+        await _getAccountInfo();
 
         Future.delayed(Duration.zero, () {
           if (mounted) {
@@ -95,9 +90,11 @@ class LoginPageState extends State<LoginPage> {
       final errorData = json.decode(response.body);
       String errorMessage;
 
-      if (response.statusCode == 400 && errorData['error'] == "Bad credentials") {
+      if (response.statusCode == 400 &&
+          errorData['error'] == "Bad credentials") {
         errorMessage = 'Sai mật khẩu. Vui lòng thử lại.';
-      } else if (response.statusCode == 500 && errorData['message'] == "Username isn't exist") {
+      } else if (response.statusCode == 500 &&
+          errorData['message'] == "Username isn't exist") {
         errorMessage = 'Email không tồn tại. Vui lòng kiểm tra lại.';
       } else {
         errorMessage = 'Có lỗi xảy ra. Vui lòng thử lại sau.';
@@ -112,11 +109,73 @@ class LoginPageState extends State<LoginPage> {
     }
   }
 
+  // Hàm lấy thông tin tài khoản
+  Future<void> _getAccountInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs
+        .getString('access_token'); // Lấy access_token từ SharedPreferences
+
+    if (token == null) {
+      logger.w("Không có access_token. Không thể lấy thông tin tài khoản.");
+      return;
+    }
+
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8080/api/v1/account'), // Thay đổi URL nếu cần
+      headers: {
+        'Authorization':
+            'Bearer $token', // Gửi access_token trong header Authorization
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      if (data['data'] != null) {
+        final accountInfo = data['data']['accountInfo'];
+        if (accountInfo != null) {
+          final prefs = await SharedPreferences.getInstance();
+          // Lưu tất cả thông tin vào SharedPreferences
+          await prefs.setInt('userId', accountInfo['id']);
+          await prefs.setString('email', accountInfo['email']);
+          await prefs.setString('name', accountInfo['name']);
+          await prefs.setString(
+              'phoneNumber', accountInfo['phoneNumber'] ?? '');
+          logger.i("Ngày sinh: ${accountInfo['birthDay']}");
+          await prefs.setString('birthDay', accountInfo['birthDay'] ?? '');
+          await prefs.setString('gender', accountInfo['gender'] ?? '');
+          await prefs.setString('avatar', accountInfo['avatar'] ?? '');
+          await prefs.setBool('active',
+              accountInfo['active'] ?? true); // Lưu trạng thái active (boolean)
+          await prefs.setStringList(
+              'roles', List<String>.from(accountInfo['roles']));
+
+          logger.w(
+              "Thông tin tài khoản đã được lưu: ${accountInfo['name']}, ${accountInfo['email']}");
+        } else {
+          logger.w("Không có dữ liệu accountInfo trong phản hồi API.");
+        }
+      } else {
+        logger.e("Lỗi khi lấy thông tin tài khoản: ${response.statusCode}");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Có lỗi xảy ra khi lấy thông tin tài khoản.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   void _navigateToForgotPassword() {
     // Thực hiện điều hướng tới màn hình quên mật khẩu
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => ForgotPasswordPage()), // Thay ForgotPasswordPage() bằng trang thực tế
+      MaterialPageRoute(
+          builder: (context) =>
+              ForgotPasswordPage()), // Thay ForgotPasswordPage() bằng trang thực tế
     );
   }
 
@@ -152,7 +211,8 @@ class LoginPageState extends State<LoginPage> {
               widthFactor: 1,
               heightFactor: 0.85,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.9),
                   borderRadius: const BorderRadius.only(
@@ -182,7 +242,8 @@ class LoginPageState extends State<LoginPage> {
                       controller: _emailController,
                       decoration: InputDecoration(
                         labelText: 'Email',
-                        prefixIcon: const Icon(Icons.email, color: Color.fromARGB(255, 214, 72, 32)),
+                        prefixIcon: const Icon(Icons.email,
+                            color: Color.fromARGB(255, 214, 72, 32)),
                         filled: true,
                         fillColor: Colors.grey[200],
                         border: OutlineInputBorder(
@@ -196,7 +257,8 @@ class LoginPageState extends State<LoginPage> {
                       controller: _passwordController,
                       decoration: InputDecoration(
                         labelText: 'Mật khẩu',
-                        prefixIcon: const Icon(Icons.lock, color: Color.fromARGB(255, 214, 72, 32)),
+                        prefixIcon: const Icon(Icons.lock,
+                            color: Color.fromARGB(255, 214, 72, 32)),
                         filled: true,
                         fillColor: Colors.grey[200],
                         border: OutlineInputBorder(
@@ -223,11 +285,13 @@ class LoginPageState extends State<LoginPage> {
                       child: ElevatedButton(
                         onPressed: _login,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 214, 72, 32),
+                          backgroundColor:
+                              const Color.fromARGB(255, 214, 72, 32),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 32),
                         ),
                         child: const Text(
                           'Đăng Nhập',

@@ -47,7 +47,9 @@ dependencies:
   dio: ^5.3.1
   flutter_datetime_picker: ^1.5.1
   awesome_select: ^5.0.0
+  cached_network_image: ^3.2.3
 
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -105,11 +107,11 @@ flutter:
   #       - asset: fonts/DancingScript.ttf
   #       - asset: fonts/Schyler-Italic.ttf
   #         style: italic
-     - family: DancingScript
-       fonts:
-         - asset: assets/fonts/DancingScript.ttf
-  #       
-           weight: 700
+      - family: DancingScript
+        fonts:
+        - asset: assets/fonts/DancingScript.ttf       
+          weight: 700
+     
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

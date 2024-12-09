@@ -19,7 +19,7 @@ class SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkToken() async {
   final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('token');
+  final token = prefs.getString('access_token');
 
   await Future.delayed(const Duration(seconds: 2)); // Add a delay for splash effect
 
