@@ -25,7 +25,9 @@ class BuyTicketPageState extends State<BuyTicketPage> {
   DateTime? selectedDate;
   final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
   bool showResults = false;
-  bool isExpanded = false;
+  //bool isExpanded = false;
+  
+  Map<int, bool> expandedStates = {};
   final Logger logger = Logger();
   late Future<List<String>> provincesFuture;
   // Hàm loại bỏ "Tỉnh" và "Thành phố" từ tên tỉnh thành
@@ -111,6 +113,57 @@ class BuyTicketPageState extends State<BuyTicketPage> {
     throw Exception('Lỗi kết nối: ${response.statusCode}');
   }
 }
+
+// Hàm lấy tiện ích từ API
+Future<List<Map<String, dynamic>>> fetchUtilities(String busTypeId) async {
+  final response = await http.get(
+    Uri.parse('http://10.0.2.2:8080/api/v1/user/busTripSchedules/utilities/$busTypeId'),
+  );
+  
+  if (response.statusCode == 200) {
+     String responseBody = utf8.decode(response.bodyBytes);
+    final responseData = jsonDecode(responseBody);
+    return List<Map<String, dynamic>>.from(responseData['data']);
+  } else {
+    throw Exception('Failed to load utilities');
+  }
+}
+
+
+// Hàm lấy chính sách từ API
+Future<List<String>> fetchPolicies(String businessPartnerId) async {
+  final response = await http.get(
+    Uri.parse('http://10.0.2.2:8080/api/v1/user/busTripSchedules/policies/$businessPartnerId'),
+  );
+
+  if (response.statusCode == 200) {
+    final Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+    if (data['data'] != null) {
+      return List<String>.from(data['data']);
+    } else {
+      throw Exception('Dữ liệu chính sách không hợp lệ');
+    }
+  } else {
+    throw Exception('Không thể tải dữ liệu chính sách');
+  }
+}
+
+  // Hàm lấy điểm đón trả
+  Future<Map<String, dynamic>> fetchPickupDropOffLocations(String busTripScheduleId, String arrivalProvince) async {
+  final String apiUrl = 'http://10.0.2.2:8080/api/v1/user/busTripSchedules/pickup-dropOff-locations';
+  final Uri uri = Uri.parse('$apiUrl?busTripScheduleId=$busTripScheduleId&arrivalProvince=$arrivalProvince');
+
+  final response = await http.get(uri);
+
+  if (response.statusCode == 200) {
+    final Map<String, dynamic> responseData = jsonDecode(utf8.decode(response.bodyBytes));
+    return responseData['data'] as Map<String, dynamic>; // Chỉ lấy phần data
+  } else {
+    throw Exception('Không thể tải dữ liệu điểm đón/trả.');
+  }
+}
+
+
 
   // Hàm chọn ngày đi
   Future<void> _selectDate(BuildContext context) async {
@@ -430,6 +483,7 @@ class BuyTicketPageState extends State<BuyTicketPage> {
             showResults
     ? Column(
         children: results.map((result) {
+          int index = results.indexOf(result);  // Lấy chỉ số của vé trong danh sách
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
             elevation: 5,
@@ -437,11 +491,20 @@ class BuyTicketPageState extends State<BuyTicketPage> {
               children: [
                 // Image at the top
                 Image.network(
-                  result['busInfo']['imageRepresentative'] ?? '',
-                  width: double.infinity,
-                  height: 150,
-                  fit: BoxFit.cover,
-                ),
+  result['busInfo']['imageRepresentative'] ?? '',
+  width: double.infinity,
+  height: 150,
+  fit: BoxFit.cover,
+  errorBuilder: (context, error, stackTrace) {
+    // Nếu không thể tải ảnh từ network, sử dụng ảnh từ assets
+    return Image.asset(
+      'assets/thue_xe/cx5.jpg', // Đảm bảo ảnh mặc định tồn tại trong thư mục assets
+      width: double.infinity,
+      height: 150,
+      fit: BoxFit.cover,
+    );
+  },
+),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Column(
@@ -521,11 +584,11 @@ const SizedBox(height: 8),
                   ),
                   IconButton(
                     icon: Icon(
-                      isExpanded ? Icons.expand_less : Icons.expand_more,
+                      expandedStates[index] == true ? Icons.expand_less : Icons.expand_more,
                     ),
                     onPressed: () {
                       setState(() {
-                        isExpanded = !isExpanded; // Chuyển trạng thái khi nhấn
+                        expandedStates[index] = !(expandedStates[index] ?? false); // Chuyển trạng thái khi nhấn
                       });
                     },
                   ),
@@ -554,17 +617,102 @@ const SizedBox(height: 8),
                   const SizedBox(height: 8),
 
                   // Kiểm tra nếu isExpanded là true thì mới hiển thị các thông tin chi tiết
-                  isExpanded
+                  expandedStates[index] == true
                       ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Giảm giá: ${result['discountPercentage']}'),
-                            Text('Đón/trả: ${result['pickupDropoff']}'),
-                            Text('Đánh giá: ${result['rating']}'),
-                            Text('Chính sách: ${result['policy']}'),
-                            Text('Tiện ích: ${result['amenities']}'),
-                          ],
-                        )
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Tiện ích
+          FutureBuilder<List<Map<String, dynamic>>>( 
+            future: fetchUtilities(result['busInfo']['busType']['id'].toString()), // Đảm bảo truyền Future đúng
+            builder: (BuildContext context, AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator();  // Đang tải
+              } else if (snapshot.hasError) {
+                return Text('Lỗi: ${snapshot.error}');  // Nếu có lỗi
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Text('Không có dữ liệu tiện ích');  // Nếu không có dữ liệu
+              } else {
+                return Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        _showUtilityDetails(context, snapshot.data!); // Hiển thị chi tiết tiện ích
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 214, 72, 32),
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(fontSize: 16),
+                      ),
+                      child: const Text('Tiện ích'),
+                    ),
+                  ],
+                );
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+
+          // Chính sách
+          FutureBuilder<List<String>>(
+            future: fetchPolicies(result['businessPartnerInfo']['id'].toString()),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator();
+              } else if (snapshot.hasError) {
+                return Text('Lỗi chính sách: ${snapshot.error}');
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Text('Không có dữ liệu chính sách');
+              } else {
+                return Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        _showPolicyDetails(context, snapshot.data!); // Hiển thị chi tiết chính sách
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 214, 72, 32),
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(fontSize: 16),
+                      ),
+                      child: const Text('Chính sách'),
+                    ),
+                  ],
+                );
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+
+          // Nút Đón/Trả
+          FutureBuilder<Map<String, dynamic>>(
+  future: fetchPickupDropOffLocations(
+    result['busTripScheduleId'].toString(),
+    result['busTripInfo']['arrivalLocation'].toString(),
+  ),
+  builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const CircularProgressIndicator(); // Hiển thị vòng tròn đang tải
+    } else if (snapshot.hasError) {
+      return Text('Lỗi: ${snapshot.error}'); // Hiển thị lỗi
+    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+      return const Text('Không có dữ liệu điểm đón/trả'); // Không có dữ liệu
+    } else {
+      return ElevatedButton(
+        onPressed: () {
+          _showPickupDropOffDetails(context, snapshot.data!); // Gọi hàm hiển thị thông tin
+        },
+        style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 214, 72, 32),
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(fontSize: 16),
+                      ),
+        child: const Text('Điểm đón/trả'),
+      );
+    }
+  },
+),
+        ],
+      )
                       : const SizedBox(), // Nếu chưa click thì không hiển thị gì
                                       ],
                                     ),
@@ -582,3 +730,92 @@ const SizedBox(height: 8),
                       );
                     }
                   }
+                  // Hàm hiển thị tiện ích chi tiết
+void _showUtilityDetails(BuildContext context, List<Map<String, dynamic>> utilities) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Tiện ích'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: utilities
+                .map((utility) => Text(utility['name'] ?? 'Không có tên tiện ích'))
+                .toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();  // Đóng cửa sổ thông tin
+            },
+            child: const Text('Đóng'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+// Hàm hiển thị chính sách chi tiết
+void _showPolicyDetails(BuildContext context, List<String> policies) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Chính sách'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: policies
+                .map((policy) => Text('• $policy'))
+                .toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();  // Đóng cửa sổ thông tin
+            },
+            child: const Text('Đóng'),
+          ),
+        ],
+      );
+    },
+  );
+}
+void _showPickupDropOffDetails(BuildContext context, Map<String, dynamic> pickupDropOffData) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Điểm đón/trả'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Điểm đón:', style: TextStyle(fontWeight: FontWeight.bold)),
+              ...pickupDropOffData['pickupLocations']
+                  .map<Widget>((pickup) => Text('- $pickup')) // Hiển thị từng điểm đón
+                  .toList(),
+              const SizedBox(height: 16),
+              const Text('Điểm trả:', style: TextStyle(fontWeight: FontWeight.bold)),
+              ...pickupDropOffData['dropOffLocations']
+                  .map<Widget>((dropOff) => Text('- $dropOff')) // Hiển thị từng điểm trả
+                  .toList(),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Đóng hộp thoại
+            },
+            child: const Text('Đóng'),
+          ),
+        ],
+      );
+    },
+  );
+}

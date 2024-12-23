@@ -1,5 +1,8 @@
-import 'package:app_pbl6/Tabs/RentVehicle/seflvehicle_detail.dart';
+import 'dart:convert';
+import 'package:app_pbl6/utils/sharedpre.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DriverServicePage extends StatefulWidget {
   @override
@@ -8,69 +11,164 @@ class DriverServicePage extends StatefulWidget {
 
 class DriverServicePageState extends State<DriverServicePage> {
   final ScrollController _scrollController = ScrollController();
-  double scrollAmount = 100; // Số pixel để cuộn mỗi lần
   String selectedCategory = 'Tất cả';
-  String sortOption = 'Mặc định'; // Giá trị mặc định
-  List<Map<String, dynamic>> vehicles = [
-    {
-      'image': 'assets/thue_xe/oto1.jpg',
-      'discount': 20,
-      'name': 'Mercedes C200',
-      'location': 'Quận Hải Châu, Đà Nẵng',
-      'engineCapacity': 'Ô tô',
-      'year': 2021,
-      'rating': 4.5,
-      'pricePerHour': 1000000,
-      'discountedPricePerHour': 800000,
-    },
-    {
-      'image': 'assets/thue_xe/cx5.jpg',
-      'discount': 15,
-      'name': 'Mazda CX5',
-      'location': 'Quận Sơn Trà, Đà Nẵng',
-      'engineCapacity': 'Ô tô',
-      'year': 2022,
-      'rating': 4.7,
-      'pricePerHour': 900000,
-      'discountedPricePerHour': 765000,
-    },
-    {
-      'image': 'assets/thue_xe/crv.jpg',
-      'discount': 10,
-      'name': 'Honda CRV',
-      'location': 'Quận Thanh Khê, Đà Nẵng',
-      'engineCapacity': 'Ô tô',
-      'year': 2021,
-      'rating': 4.6,
-      'pricePerHour': 950000,
-      'discountedPricePerHour': 855000,
-    },
-  ];
+  String sortOption = 'Mặc định';
+  List<Map<String, dynamic>> vehicles = [];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadVehicles();
+  }
+
+  // Hàm lấy token từ SharedPreferences
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token');
+  }
+
+  // Hàm tải dữ liệu xe từ API
+  Future<void> _loadVehicles() async {
+    final token = await getToken();
+    if (token != null) {
+      try {
+        final response = await fetchVehicles(token);
+        if (response != null) {
+          setState(() {
+            vehicles = response;
+          });
+        }
+      } catch (e) {
+        logger.e('Error loading vehicles: $e');
+      }
+    }
+  }
+
+  // Hàm gọi API để lấy danh sách xe
+  Future<List<Map<String, dynamic>>?> fetchVehicles(String token) async {
+    final url = Uri.parse('http://10.0.2.2:8080/user/vehicle-register/all?service_type=1&status=available&car_rental_partner_id=-1');
+    
+    final response = await http.get(url, headers: {
+      'Authorization': 'Bearer $token',
+    });
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final List vehicles = data['data'];
+
+      return vehicles.map((vehicle) {
+        return {
+          'id': vehicle['id'],
+          'price': vehicle['price'],
+          'location': vehicle['location'],
+          'manufacturer': vehicle['manufacturer'],
+          'vehicleLife': vehicle['vehicleLife'],
+          'vehicle_type': vehicle['vehicle_type'],
+          'discount_percentage': vehicle['discount_percentage'],
+          'amount': vehicle['amount'],
+          'imagesVehicleRegister': vehicle['imagesVehicleRegister'],
+          'rating_total': vehicle['rating_total'],
+        };
+      }).toList();
+    } else {
+      throw Exception('Failed to load vehicles');
+    }
+  }
+
+  // Hàm sắp xếp xe theo giá
   void _sortVehicles() {
     setState(() {
       if (sortOption == 'Giá cao đến thấp') {
-        vehicles.sort((a, b) => b['discountedPricePerHour'].compareTo(a['discountedPricePerHour']));
+        vehicles.sort((a, b) => b['price'].compareTo(a['price']));
       } else if (sortOption == 'Giá thấp đến cao') {
-        vehicles.sort((a, b) => a['discountedPricePerHour'].compareTo(b['discountedPricePerHour']));
+        vehicles.sort((a, b) => a['price'].compareTo(b['price']));
       }
     });
+  }
+
+  // Widget hiển thị danh sách xe
+  Widget _buildVehicleCard({
+    required String image,
+    required String name,
+    required String location,
+    required String engineCapacity,
+    required String year,
+    required double rating,
+    required double pricePerHour,
+    required double discountedPricePerHour,
+    required int discount,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4.0,
+            spreadRadius: 2.0,
+          ),
+        ],
+      ),
+      margin: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        children: [
+          // Hình ảnh xe
+          SizedBox(
+            height: 100,
+            width: 100,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Image.asset(image, fit: BoxFit.cover),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Thông tin xe
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text('$location | $engineCapacity', style: const TextStyle(fontSize: 12)),
+                const SizedBox(height: 4),
+                Text(year, style: const TextStyle(fontSize: 12)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text('Đánh giá: $rating', style: const TextStyle(fontSize: 12)),
+                    const Spacer(),
+                    Text(
+                      'Giá: ${discountedPricePerHour.toStringAsFixed(0)}đ',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text('Giảm giá: $discount%', style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-  title: const Text(
-    'Thuê xe tự lái',
-    style: TextStyle(
-      color: Color.fromARGB(255, 214, 72, 32), // Chỉnh màu chữ
-      fontWeight: FontWeight.bold, // Đậm chữ
-    ),
-  ),
-  backgroundColor: const Color.fromARGB(255, 255, 230, 224),
-  centerTitle: true, // Căn chữ ra giữa
-),
+        title: const Text(
+          'Thuê xe tự lái',
+          style: TextStyle(
+            color: Color.fromARGB(255, 214, 72, 32), // Chỉnh màu chữ
+            fontWeight: FontWeight.bold, // Đậm chữ
+          ),
+        ),
+        backgroundColor: const Color.fromARGB(255, 255, 230, 224),
+        centerTitle: true, // Căn chữ ra giữa
+      ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         children: [
@@ -108,7 +206,7 @@ class DriverServicePageState extends State<DriverServicePage> {
                         icon: const Icon(Icons.arrow_forward_ios, size: 16),
                         onPressed: () {
                           _scrollController.animateTo(
-                            _scrollController.offset + scrollAmount,
+                            _scrollController.offset + 100,
                             duration: const Duration(milliseconds: 300),
                             curve: Curves.easeInOut,
                           );
@@ -118,7 +216,7 @@ class DriverServicePageState extends State<DriverServicePage> {
                   ),
                 ),
               ),
-                const SizedBox(width: 10),
+              const SizedBox(width: 10),
               // Sắp xếp
               Flexible(
                 child: Container(
@@ -150,10 +248,7 @@ class DriverServicePageState extends State<DriverServicePage> {
                       children: [
                         Icon(Icons.sort, color: Color.fromARGB(255, 214, 72, 32), size: 20),
                         SizedBox(width: 4),
-                        Text(
-                          'Sắp xếp',
-                          style: TextStyle(fontSize: 14, color: Colors.black),
-                        ),
+                        Text('Sắp xếp', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -161,239 +256,55 @@ class DriverServicePageState extends State<DriverServicePage> {
               ),
             ],
           ),
-          const SizedBox(height: 8,),
-
-          // Dòng trạng thái sắp xếp
-          Center(
-            child: Text(
-              'Sắp xếp: $sortOption',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
           const SizedBox(height: 16),
-
-          // Danh sách các xe
-          ...vehicles.map((vehicle) => _buildVehicleCard(
-                image: vehicle['image'],
-                discount: vehicle['discount'],
-                name: vehicle['name'],
+          // Hiển thị danh sách xe
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: vehicles.length,
+            itemBuilder: (context, index) {
+              final vehicle = vehicles[index];
+              return _buildVehicleCard(
+                image: vehicle['imagesVehicleRegister'].isNotEmpty
+                    ? vehicle['imagesVehicleRegister'][0]
+                    : 'assets/images/default_car.png', // Hình ảnh mặc định
+                name: vehicle['manufacturer'],
                 location: vehicle['location'],
-                engineCapacity: vehicle['engineCapacity'],
-                year: vehicle['year'],
-                rating: vehicle['rating'],
-                pricePerHour: vehicle['pricePerHour'],
-                discountedPricePerHour: vehicle['discountedPricePerHour'],
-              )),
+                engineCapacity: vehicle['vehicle_type'],
+                year: vehicle['vehicleLife'],
+                rating: vehicle['rating_total'],
+                pricePerHour: vehicle['price'],
+                discountedPricePerHour: vehicle['price'] * (1 - vehicle['discount_percentage'] / 100),
+                discount: vehicle['discount_percentage'].toInt(),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryButton(String title, IconData icon) {
-    final isSelected = selectedCategory == title;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+  Widget _buildCategoryButton(String category, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10.0),
       child: ElevatedButton(
-        onPressed: () {
-          setState(() {
-            selectedCategory = title;
-          });
-        },
+        onPressed: () {},
         style: ElevatedButton.styleFrom(
-          backgroundColor: isSelected ? const Color.fromARGB(255, 214, 72, 32) : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8.0),
-          ),
+          padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 12.0),
+          backgroundColor: selectedCategory == category
+              ? const Color.fromARGB(255, 214, 72, 32)
+              : Colors.transparent,
+          iconColor: selectedCategory == category ? Colors.white : Colors.black,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 12,
-              color: isSelected ? Colors.black : const Color.fromARGB(255, 214, 72, 32),
-            ),
-            const SizedBox(width: 4.0),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 10,
-                color: isSelected ? Colors.white : Colors.black,
-              ),
-            ),
+            Icon(icon, size: 18),
+            const SizedBox(width: 8),
+            Text(category, style: const TextStyle(fontSize: 14)),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildVehicleCard({
-    required String image,
-    required int discount,
-    required String name,
-    required String location,
-    required String engineCapacity,
-    required int year,
-    required double rating,
-    required int pricePerHour,
-    required int discountedPricePerHour,
-  }) {
-    return GestureDetector(
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SelfDriveDetailsPage(
-            vehicle: {
-              'image': image,
-              'discount': discount,
-              'name': name,
-              'location': location,
-              'engineCapacity': engineCapacity,
-              'year': year,
-              'rating': rating,
-              'pricePerHour': pricePerHour,
-              'discountedPricePerHour': discountedPricePerHour,
-            },
-          ),
-        ),
-      );
-    },
-    child: Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      elevation: 4,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(8.0),
-                ),
-                child: Image.asset(
-                  image,
-                  width: double.infinity,
-                  height: 150,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0,
-                    vertical: 4.0,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(4.0),
-                  ),
-                  child: Text(
-                    '-$discount%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4.0),
-                Text(
-                  location,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 8.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Loại xe: $engineCapacity',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black,
-                      ),
-                    ),
-                    Text(
-                      'Năm: $year',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star,
-                          size: 14,
-                          color: Colors.orange,
-                        ),
-                        Text(
-                          ' $rating',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    RichText(
-                      text: TextSpan(
-                        text: '$discountedPricePerHour₫/giờ',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: '  $pricePerHour₫',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              decoration: TextDecoration.lineThrough,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
     );
   }
 }

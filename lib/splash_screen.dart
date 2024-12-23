@@ -1,5 +1,4 @@
-
-
+import 'package:app_pbl6/utils/sharedpre.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_pbl6/main.dart';
@@ -18,26 +17,26 @@ class SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkToken() async {
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('access_token');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    logger.w("accesstk: $token");
+    await Future.delayed(
+        const Duration(seconds: 2)); // Add a delay for splash effect
 
-  await Future.delayed(const Duration(seconds: 2)); // Add a delay for splash effect
+    if (!mounted) return; // Check if the widget is still in the widget tree
 
-  if (!mounted) return; // Check if the widget is still in the widget tree
-
-  if (token != null && token.isNotEmpty) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => HomePage()),
-    );
-  } else {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => WelcomePage()),
-    );
+    if (token != null && token.isNotEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => WelcomePage()),
+      );
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
